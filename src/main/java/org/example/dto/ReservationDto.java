@@ -12,7 +12,9 @@ import lombok.NoArgsConstructor;
 public class ReservationDto {
     private String id;
     private String userId;
+    private String username;
     private String deskId;
+    private String deskName;
     private String date;
     private Long createdAt;
 }

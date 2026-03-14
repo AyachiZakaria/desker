@@ -5,9 +5,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -15,8 +12,18 @@ import java.time.LocalDateTime;
 public class Reservation {
     private String id;
     private String userId;
+    /**
+     * Denormalized username (currently derived from Firebase email) stored for convenient reads.
+     * May be null for older documents.
+     */
+    private String username;
     private String deskId;
-    
+    /**
+     * Denormalized desk name stored for convenient reads.
+     * May be null for older documents.
+     */
+    private String deskName;
+
     // Using String for Firestore compatibility with simple queries (yyyy-MM-dd)
     private String date;
     

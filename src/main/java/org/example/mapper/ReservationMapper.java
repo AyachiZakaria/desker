@@ -18,7 +18,9 @@ public interface ReservationMapper {
     
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "userId", ignore = true) // to be set by service
+    @Mapping(target = "username", ignore = true) // to be set by service
     @Mapping(target = "createdAt", ignore = true) // to be set by service
+    @Mapping(target = "deskName", ignore = true) // to be set by service
     Reservation toEntity(ReservationRequest request);
 
     List<ReservationDto> toDtoList(List<Reservation> reservations);

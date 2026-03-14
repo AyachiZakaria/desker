@@ -9,7 +9,6 @@ import org.example.dto.ReservationRequest;
 import org.example.security.FirebaseAuthenticationToken;
 import org.example.service.ReservationService;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
@@ -39,7 +38,10 @@ public class ReservationController {
         try {
             if (principal instanceof FirebaseAuthenticationToken token) {
                 String uid = token.getUid();
-                List<ReservationDto> created = reservationService.reserveDesks(uid, requests);
+                // Store a human-friendly username for easier UI rendering.
+                // Currently this is the Firebase email address.
+                String username = token.getEmail();
+                List<ReservationDto> created = reservationService.reserveDesks(uid, username, requests);
                 return ResponseEntity.ok(created);
             }
             return ResponseEntity.status(401).build();

@@ -12,9 +12,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.time.temporal.WeekFields;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -30,10 +28,17 @@ public class ReservationService {
     private final ReservationMapper reservationMapper;
 
     public List<ReservationDto> getMyReservations(String userId) throws ExecutionException, InterruptedException {
-        return reservationMapper.toDtoList(reservationRepository.findByUserId(userId));
+        List<Reservation> reservations = reservationRepository.findByUserId(userId);
+        // Lazy enrichment/backfill for older docs that don't yet have denormalized fields.
+        enrichMissingFields(reservations);
+        return reservationMapper.toDtoList(reservations);
     }
 
     public List<ReservationDto> reserveDesks(String userId, List<ReservationRequest> requests) throws ExecutionException, InterruptedException {
+        return reserveDesks(userId, null, requests);
+    }
+
+    public List<ReservationDto> reserveDesks(String userId, String username, List<ReservationRequest> requests) throws ExecutionException, InterruptedException {
         // Group by month to validate rules per month
         // Assuming user submits reservations for a single month at a time for simplicity
         if (requests.isEmpty()) {
@@ -41,16 +46,18 @@ public class ReservationService {
         }
 
         String sampleDateStr = requests.get(0).getDate();
-        LocalDate sampleDate = LocalDate.parse(sampleDateStr);
         String yearMonthPrefix = sampleDateStr.substring(0, 7); // e.g. "2026-03"
 
         // Fetch existing reservations for the month
         List<Reservation> existingReservations = reservationRepository.findByUserIdAndMonth(userId, yearMonthPrefix);
 
         // Convert new requests to entities
+        // Username is not taken from client input to avoid spoofing.
+        String derivedUsername = (username != null && !username.isBlank()) ? username : deriveUsernameForUser(userId);
         List<Reservation> newReservations = requests.stream().map(req -> {
             Reservation res = reservationMapper.toEntity(req);
             res.setUserId(userId);
+            res.setUsername(derivedUsername);
             res.setCreatedAt(System.currentTimeMillis());
             return res;
         }).collect(Collectors.toList());
@@ -72,6 +79,13 @@ public class ReservationService {
             if (deskOpt.isEmpty()) {
                 throw new IllegalArgumentException("Desk " + req.getDeskId() + " does not exist");
             }
+            // Set denormalized desk name for API responses and faster reporting.
+            String deskName = deskOpt.get().getName();
+            for (Reservation res : newReservations) {
+                if (req.getDeskId().equals(res.getDeskId()) && req.getDate().equals(res.getDate())) {
+                    res.setDeskName(deskName);
+                }
+            }
             // Check if user already booked a desk on this date
             boolean userAlreadyBooked = existingReservations.stream().anyMatch(r -> r.getDate().equals(req.getDate()));
             if(userAlreadyBooked) {
@@ -85,6 +99,39 @@ public class ReservationService {
         }
 
         return reservationMapper.toDtoList(newReservations);
+    }
+
+    /**
+     * For now we treat "username" as the Firebase email address.
+     * If later a dedicated user profile exists, update this method to pull the display name.
+     */
+    private String deriveUsernameForUser(String userId) {
+        // We currently don't persist user profiles; the controller/auth layer has email,
+        // but this service is invoked with userId only.
+        // Store userId as fallback; controller can be extended later to pass email.
+        return userId;
+    }
+
+    private void enrichMissingFields(List<Reservation> reservations) throws ExecutionException, InterruptedException {
+        boolean anyUpdated = false;
+        for (Reservation r : reservations) {
+            if (r.getDeskName() == null && r.getDeskId() != null) {
+                Optional<Desk> deskOpt = deskRepository.findById(r.getDeskId());
+                deskOpt.ifPresent(d -> r.setDeskName(d.getName()));
+                if (r.getDeskName() != null) {
+                    anyUpdated = true;
+                }
+            }
+        }
+
+        // Best-effort backfill to Firestore so next reads are faster.
+        if (anyUpdated) {
+            for (Reservation r : reservations) {
+                if (r.getId() != null) {
+                    reservationRepository.save(r);
+                }
+            }
+        }
     }
 
     private void validateMonthlyRules(List<Reservation> reservations, String yearMonthPrefix) {
