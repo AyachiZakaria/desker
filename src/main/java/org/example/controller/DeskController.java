@@ -39,4 +39,10 @@ public class DeskController {
     public ResponseEntity<DeskDto> addDesk(@Valid @RequestBody CreateDeskRequest request) throws ExecutionException, InterruptedException {
         return ResponseEntity.ok(deskService.createDesk(request));
     }
+
+    @PostMapping("/bulk")
+    @Operation(summary = "Add multiple desks", description = "Creates multiple desks in a single request (Firestore ids are generated automatically)")
+    public ResponseEntity<List<DeskDto>> addDesksBulk(@Valid @RequestBody List<CreateDeskRequest> requests) throws ExecutionException, InterruptedException {
+        return ResponseEntity.ok(deskService.createDesks(requests));
+    }
 }

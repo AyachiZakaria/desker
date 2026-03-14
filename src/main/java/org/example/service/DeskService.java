@@ -49,4 +49,17 @@ public class DeskService {
         Desk saved = deskRepository.save(desk);
         return deskMapper.toDto(saved);
     }
+
+    public List<DeskDto> createDesks(List<CreateDeskRequest> requests) throws ExecutionException, InterruptedException {
+        List<Desk> desks = requests.stream()
+                .map(deskMapper::toEntity)
+                .peek(d -> d.setId(null))
+                .toList();
+
+        for (Desk desk : desks) {
+            deskRepository.save(desk);
+        }
+
+        return deskMapper.toDtoList(desks);
+    }
 }
