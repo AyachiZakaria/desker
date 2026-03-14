@@ -1,0 +1,27 @@
+{
+  "DeskDto": {
+    "id": "desk-101",
+    "name": "Desk 101",
+    "positionX": 150.5,
+    "positionY": 300.2,
+    "floor": 1,
+    "zone": "Engineering"
+  },
+  "ReservationRequest": [
+    {
+      "deskId": "desk-101",
+      "date": "2026-03-02"
+    },
+    {
+      "deskId": "desk-101",
+      "date": "2026-03-06"
+    }
+  ],
+  "ReservationDto": {
+    "id": "res-uuid-123",
+    "userId": "firebase-uid-abc",
+    "deskId": "desk-101",
+    "date": "2026-03-02",
+    "createdAt": 1710400000000
+  }
+}

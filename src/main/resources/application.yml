@@ -1,0 +1,16 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: desker
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+firebase:
+  credentials:
+    path: ${FIREBASE_CREDENTIALS_PATH:classpath:firebase-service-account.json}
