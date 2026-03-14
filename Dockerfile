@@ -28,6 +28,5 @@ COPY --from=builder /build/target/desker-1.0-SNAPSHOT.jar app.jar
 
 # Expose the port
 EXPOSE 8080
-
 # Start the application
 ENTRYPOINT ["java","-jar","app.jar"]
