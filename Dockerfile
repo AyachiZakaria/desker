@@ -1,34 +1,33 @@
-# Start from a Java 17 base image
-FROM eclipse-temurin:17-jdk-jammy
+# Stage 1: Build the application
+FROM eclipse-temurin:17-jdk-jammy AS builder
 
-# Set work directory
-WORKDIR /app
+WORKDIR /build
 
-# Copy Maven wrapper and pom.xml first (to cache dependencies)
+# Copy Maven wrapper and pom first to leverage caching
+COPY pom.xml .
 COPY mvnw .
 COPY .mvn .mvn
-COPY pom.xml .
 
-# Make Maven wrapper executable
+# Download dependencies (offline)
 RUN chmod +x mvnw
-
-# Download dependencies
 RUN ./mvnw dependency:go-offline
 
-# Copy the source code
-COPY src src
+# Copy source code
+COPY src ./src
 
-# Build the Spring Boot app
+# Build the app without tests
 RUN ./mvnw clean package -DskipTests
 
-# Set the JAR name (replace with your actual jar name)
-ARG JAR_FILE=target/desker-1.0-SNAPSHOT.jar
+# Stage 2: Create minimal image
+FROM eclipse-temurin:17-jdk-jammy
 
-# Copy the jar into the container
-COPY ${JAR_FILE} app.jar
+WORKDIR /app
 
-# Expose the port your app runs on
+# Copy the built JAR from the builder stage
+COPY --from=builder /build/target/desker-1.0-SNAPSHOT.jar app.jar
+
+# Expose the port
 EXPOSE 8080
 
-# Run the jar
-ENTRYPOINT ["java","-jar","/app/app.jar"]
+# Start the application
+ENTRYPOINT ["java","-jar","app.jar"]
