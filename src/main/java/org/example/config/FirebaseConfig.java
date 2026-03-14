@@ -7,36 +7,35 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 
 import javax.annotation.PostConstruct;
+import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 @Configuration
 public class FirebaseConfig {
-
-    @Value("${firebase.credentials.path}")
-    private String credentialsPath;
 
     @PostConstruct
     public void initialize() {
         try {
             if (FirebaseApp.getApps().isEmpty()) {
-                FirebaseOptions options;
-                if (credentialsPath.startsWith("classpath:")) {
-                    String path = credentialsPath.substring("classpath:".length());
-                    options = FirebaseOptions.builder()
-                            .setCredentials(GoogleCredentials.fromStream(
-                                    getClass().getClassLoader().getResourceAsStream(path)
-                            ))
-                            .build();
-                } else {
-                    options = FirebaseOptions.builder()
-                            .setCredentials(GoogleCredentials.fromStream(new FileInputStream(credentialsPath)))
-                            .build();
+
+                // Read Firebase credentials JSON from environment variable
+                String firebaseJson = System.getenv("FIREBASE_CREDENTIALS_JSON");
+                if (firebaseJson == null || firebaseJson.isEmpty()) {
+                    throw new IllegalStateException("FIREBASE_CREDENTIALS_JSON env variable not set!");
                 }
+
+                FirebaseOptions options = FirebaseOptions.builder()
+                        .setCredentials(GoogleCredentials.fromStream(
+                                new ByteArrayInputStream(firebaseJson.getBytes(StandardCharsets.UTF_8))
+                        ))
+                        .build();
+
                 FirebaseApp.initializeApp(options);
+                System.out.println("Firebase initialized successfully!");
             }
-        } catch (IOException e) {
-            // Log error or throw unchecked exception based on requirements
+        } catch (Exception e) {
             throw new RuntimeException("Could not initialize Firebase Admin SDK", e);
         }
     }
