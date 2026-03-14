@@ -51,4 +51,24 @@ public class ReservationController {
             return ResponseEntity.internalServerError().body("An error occurred: " + e.getMessage());
         }
     }
+
+    @DeleteMapping("/reservations/{reservationId}")
+    @Operation(summary = "Delete my reservation", description = "Deletes a reservation by id for the currently authenticated user")
+    public ResponseEntity<?> deleteMyReservation(@PathVariable String reservationId, Principal principal) {
+        try {
+            if (principal instanceof FirebaseAuthenticationToken token) {
+                String uid = token.getUid();
+                boolean deleted = reservationService.deleteMyReservation(uid, reservationId);
+                if (!deleted) {
+                    return ResponseEntity.notFound().build();
+                }
+                return ResponseEntity.noContent().build();
+            }
+            return ResponseEntity.status(401).build();
+        } catch (SecurityException e) {
+            return ResponseEntity.status(403).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("An error occurred: " + e.getMessage());
+        }
+    }
 }

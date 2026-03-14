@@ -102,6 +102,27 @@ public class ReservationService {
     }
 
     /**
+     * Deletes a reservation if (and only if) it belongs to the given user.
+     *
+     * @return true if the reservation existed and was deleted, false if it did not exist.
+     * @throws SecurityException if the reservation exists but is owned by a different user.
+     */
+    public boolean deleteMyReservation(String userId, String reservationId) throws ExecutionException, InterruptedException {
+        Optional<Reservation> existing = reservationRepository.findById(reservationId);
+        if (existing.isEmpty()) {
+            return false;
+        }
+
+        Reservation reservation = existing.get();
+        if (reservation.getUserId() == null || !reservation.getUserId().equals(userId)) {
+            throw new SecurityException("Not allowed to delete this reservation");
+        }
+
+        reservationRepository.delete(reservationId);
+        return true;
+    }
+
+    /**
      * For now we treat "username" as the Firebase email address.
      * If later a dedicated user profile exists, update this method to pull the display name.
      */
