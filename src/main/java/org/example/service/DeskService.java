@@ -11,6 +11,7 @@ import org.example.model.Reservation;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
@@ -56,10 +57,39 @@ public class DeskService {
                 .peek(d -> d.setId(null))
                 .toList();
 
+        // Persist each desk so Firestore generates ids (and we return them to the caller)
+        List<Desk> saved = new java.util.ArrayList<>(desks.size());
         for (Desk desk : desks) {
-            deskRepository.save(desk);
+            saved.add(deskRepository.save(desk));
         }
 
-        return deskMapper.toDtoList(desks);
+        return deskMapper.toDtoList(saved);
+    }
+
+    public DeskDto updateDeskById(String id, CreateDeskRequest request) throws ExecutionException, InterruptedException {
+        Optional<Desk> existingOpt = deskRepository.findById(id);
+        if (existingOpt.isEmpty()) {
+            throw new IllegalArgumentException("Desk not found: " + id);
+        }
+
+        Desk updated = deskMapper.toEntity(request);
+        updated.setId(id);
+        Desk saved = deskRepository.save(updated);
+        return deskMapper.toDto(saved);
+    }
+
+    /**
+     * Updates a desk by name. Requires exactly one desk with the given name.
+     */
+    public DeskDto updateDeskByName(String name, CreateDeskRequest request) throws ExecutionException, InterruptedException {
+        List<Desk> matches = deskRepository.findByName(name);
+        if (matches.isEmpty()) {
+            throw new IllegalArgumentException("Desk not found with name: " + name);
+        }
+        if (matches.size() > 1) {
+            throw new IllegalArgumentException("Desk name is not unique: " + name);
+        }
+
+        return updateDeskById(matches.get(0).getId(), request);
     }
 }

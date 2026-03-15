@@ -45,4 +45,18 @@ public class DeskController {
     public ResponseEntity<List<DeskDto>> addDesksBulk(@Valid @RequestBody List<CreateDeskRequest> requests) throws ExecutionException, InterruptedException {
         return ResponseEntity.ok(deskService.createDesks(requests));
     }
+
+    @PutMapping("/{id}")
+    @Operation(summary = "Update a desk by id", description = "Replaces desk fields by Firestore id and returns the updated desk")
+    public ResponseEntity<DeskDto> updateDeskById(@PathVariable String id, @Valid @RequestBody CreateDeskRequest request)
+            throws ExecutionException, InterruptedException {
+        return ResponseEntity.ok(deskService.updateDeskById(id, request));
+    }
+
+    @PutMapping("/by-name/{name}")
+    @Operation(summary = "Update a desk by name", description = "Updates a desk by name (requires the name to be unique) and returns the updated desk")
+    public ResponseEntity<DeskDto> updateDeskByName(@PathVariable String name, @Valid @RequestBody CreateDeskRequest request)
+            throws ExecutionException, InterruptedException {
+        return ResponseEntity.ok(deskService.updateDeskByName(name, request));
+    }
 }
